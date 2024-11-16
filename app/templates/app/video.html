@@ -1,0 +1,311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welding</title>
+    <link rel="stylesheet" href="{% static '/css/style.css' %}" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="video">
+        <div class="top">
+          <p>
+            <img
+              src="{%static '/1000016991.png'%}"
+              alt="WRWS"
+              style="height: 50px; width: 70px"
+            />
+          </p>
+
+          <p>
+            <img
+              src="{%static '/welding img.png'%}"
+              alt="Welding Inspection"
+              style="height: 80px; width: 300px"
+            />
+          </p>
+
+          <button class="switch-button" id="switchButton">
+            <img
+              src="{% static '/swap (1).png' %}"
+              alt="start"
+              style="height: 30px; width: 30px"
+            />
+          </button>
+        </div>
+        <video id="video" autoplay playsinline style="display: none"></video>
+        <canvas id="canvas" style="display: none"></canvas>
+        <img id="photo" />
+        <div id="resultBox" class="result-box">Result will appear here</div>
+        <div class="bottom">
+          <button class="start-button" id="startButton">
+            <img
+              src="{% static '/play (1) (1).png' %}"
+              alt="start"
+              style="height: 80px; width: 80px"
+            />
+          </button>
+          <button class="capture-button" id="captureButton" draggable="true">
+            <img
+              src="{% static '/capture (1).png' %}"
+              alt="start"
+              style="height: 60px; width: 60px"
+            />
+          </button>
+          <button class="next-button" id="nextButton">
+            <img
+              src="{% static '/right-arrow (1).png' %}"
+              alt="start"
+              style="height: 60px; width: 60px"
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!--script-->
+    <script>
+      const startButton = document.getElementById("startButton");
+      const captureButton = document.getElementById("captureButton");
+      const switchButton = document.getElementById("switchButton");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const photo = document.getElementById("photo");
+      const inferenceImage = document.getElementById("inferenceImage"); // Element to display the inference image
+
+      const nextButton = document.getElementById("nextButton");
+      let stream;
+      let currentStreamTrack;
+      let currentDeviceId = null; // To keep track of the current camera device
+      let sessionId = new Date();
+
+      async function getAvailableCameras() {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          return devices.filter((device) => device.kind === "videoinput");
+        } catch (err) {
+          console.error("Error fetching devices", err);
+          return [];
+        }
+      }
+
+      // Function to start the camera with a specific device ID
+      async function startCamera(deviceId = null) {
+        try {
+          const constraints = {
+            video: deviceId ? { deviceId: { exact: deviceId } } : true,
+          };
+
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          video.srcObject = stream;
+          video.style.display = "block";
+          captureButton.disabled = false;
+          switchButton.disabled = false;
+          currentStreamTrack = stream.getVideoTracks()[0]; // Track the current camera
+        } catch (err) {
+          console.error("Error accessing the camera", err);
+        }
+      }
+
+      // Function to stop the camera
+      function stopCamera() {
+        sessionId = new Date();
+        if (currentStreamTrack) {
+          currentStreamTrack.stop(); // Stop the current camera track
+        }
+        video.style.display = "none";
+        fetch("get-result/")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Results:", data);
+            alert(
+              `Good: ${data.good}, Bad: ${data.bad}, Percentage: ${data.percent}%`
+            );
+          })
+          .catch((error) => {
+            console.error(
+              "There was a problem with the fetch operation:",
+              error
+            );
+          });
+      }
+      const startlogo = `<img src="{% static '/play (1) (1).png' %}" alt="start" style="height: 60px; width: 60px"/>`;
+      const endlogo = `<img src="{% static '/stop-button (1).png' %}" alt="start" style="height: 60px; width: 60px"/>`;
+
+      // Event listener to toggle between Start and End
+      startButton.innerHTML = startlogo;
+      startButton.dataset.state = "start";
+      startButton.addEventListener("click", async () => {
+        if (startButton.dataset.state === "start") {
+          // Start the camera if "Start" is clicked
+          const cameras = await getAvailableCameras();
+          if (cameras.length > 0) {
+            currentDeviceId = cameras[0].deviceId; // Start with the first camera
+            await startCamera(currentDeviceId);
+            startButton.innerHTML = endlogo; // Change button to "End" logo
+            startButton.dataset.state = "end";
+          } else {
+            console.error("No cameras found");
+          }
+        } else {
+          // Stop the camera if "End" is clicked
+          stopCamera();
+          startButton.innerHTML = startlogo; // Change button back to "Start" logo
+          startButton.dataset.state = "start"; // Change button text back to "Start"
+        }
+      });
+
+      captureButton.addEventListener("click", () => {
+        // Draw the current frame from the video onto the canvas
+        const context = canvas.getContext("2d");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert the canvas image to a data URL and display it in the img tag
+        photo.src = canvas.toDataURL("image/png");
+        photo.style.display = "block";
+
+        const resultBox = document.getElementById("resultBox");
+        resultBox.innerText = "Image captured successfully!";
+
+        // Stop the camera
+        currentStreamTrack.stop();
+        video.style.display = "none";
+
+        // Send the captured image to the server for inference
+        const imageData = photo.src; // base64 image
+        sendImageToServer(imageData);
+      });
+
+      switchButton.addEventListener("click", async () => {
+        const cameras = await getAvailableCameras();
+        if (cameras.length > 1) {
+          // Find the next camera
+          const nextCamera = cameras.find(
+            (camera) => camera.deviceId !== currentDeviceId
+          );
+          if (nextCamera) {
+            currentDeviceId = nextCamera.deviceId;
+            currentStreamTrack.stop();
+            startCamera(currentDeviceId);
+          }
+        }
+      });
+
+      async function sendImageToServer(imageData) {
+        time = sessionId.toISOString();
+        console.log(time);
+        try {
+          const response = await fetch("{% url 'process_image' %}", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": "{{ csrf_token }}", // CSRF token for Django
+            },
+            body: JSON.stringify({
+              image: imageData,
+              session: time,
+            }),
+          });
+
+          const result = await response.json();
+          const resultBox = document.getElementById("resultBox");
+
+          if (result.status != null && result.status !== "") {
+            resultBox.innerText = "Inference result: " + result.status;
+
+            // Display the inference image returned from the server
+            if (result.result) {
+              // Decode and display the base64 image
+              displayBase64Image(result.result);
+            }
+          } else {
+            resultBox.innerText = "Error: " + result.message;
+            resultBox.innerText = "Inference result: No detection";
+          }
+        } catch (error) {
+          console.error("Error sending image to server:", error);
+          const resultBox = document.getElementById("resultBox");
+          resultBox.innerText = "Error sending image to server.";
+        }
+      }
+
+      function displayBase64Image(base64String) {
+        const imageElement = document.getElementById("photo");
+        imageElement.src = "data:image/png;base64," + base64String;
+        imageElement.style.display = "block";
+      }
+
+      const resultBox = document.querySelector(".result-box");
+
+      let offsetX, offsetY;
+
+      // Function to handle dragging
+      function moveBox(event) {
+        const clientX = event.touches
+          ? event.touches[0].clientX
+          : event.clientX;
+        const clientY = event.touches
+          ? event.touches[0].clientY
+          : event.clientY;
+
+        resultBox.style.left = `${clientX - offsetX}px`;
+        resultBox.style.top = `${clientY - offsetY}px`;
+      }
+
+      // Function to start dragging
+      function startDrag(event) {
+        const clientX = event.touches
+          ? event.touches[0].clientX
+          : event.clientX;
+        const clientY = event.touches
+          ? event.touches[0].clientY
+          : event.clientY;
+
+        offsetX = clientX - resultBox.getBoundingClientRect().left;
+        offsetY = clientY - resultBox.getBoundingClientRect().top;
+        resultBox.style.cursor = "grabbing";
+
+        document.addEventListener("mousemove", moveBox);
+        document.addEventListener("touchmove", moveBox);
+
+        document.addEventListener("mouseup", stopDrag, { once: true });
+        document.addEventListener("touchend", stopDrag, { once: true });
+      }
+
+      // Function to stop dragging
+      function stopDrag() {
+        document.removeEventListener("mousemove", moveBox);
+        document.removeEventListener("touchmove", moveBox);
+        resultBox.style.cursor = "grab";
+      }
+
+      // Add event listeners for both mouse and touch
+      resultBox.addEventListener("mousedown", startDrag);
+      resultBox.addEventListener("touchstart", startDrag);
+
+      //next button
+      nextButton.addEventListener("click", async () => {
+        // Clear the displayed photo and hide it
+        photo.src = "";
+        photo.style.display = "none";
+
+        // Show the video feed again
+        video.style.display = "block";
+
+        // Restart the camera feed
+        if (currentDeviceId) {
+          await startCamera(currentDeviceId);
+        }
+      });
+    </script>
+  </body>
+</html>

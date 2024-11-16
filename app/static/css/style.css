@@ -1,0 +1,158 @@
+/* General reset and container centering */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #1e1e1e;
+    font-family: Arial, sans-serif;
+}
+
+/* Video container styling */
+.video {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    position: relative;
+    width: 90%; /* Use percentage for responsiveness */
+    max-width: 700px;
+    height: auto;
+    aspect-ratio: 4 / 3; /* Helps maintain aspect ratio */
+    background-color: #4d4b4b;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Center the image */
+.center-image {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+}
+
+/* Adjust positioning for top and bottom sections */
+.video .top {
+    position: absolute;
+    top: 7px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.video .bottom {
+    position: absolute;
+    bottom: 70px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+}
+
+/* Center the Capture button in the bottom section */
+.capture-button {
+    margin: 0 auto;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.next-button{
+    left:80%;
+    position: absolute;
+    
+}
+.start-button{
+    right: 80%;
+    position: absolute;
+}
+
+/* Style adjustments for buttons  */
+.start-button,
+.next-button,
+.switch-button,
+.capture-button{
+    
+    background-color:transparent;
+    cursor: pointer;
+    border: none;
+}
+
+/* Result box styling */
+.result-box {
+    width: 200px;
+    height: 90px;
+    background-color: #555;
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    cursor: grab;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .video {
+        width: 95%;
+        height:100%;
+        /* aspect-ratio: 16 / 15; */
+    }
+
+    .result-box {
+        width: 120px;
+        height: 70px;
+        font-size: 14px;
+    }
+
+    /* .start-button,
+    .switch-button,
+    .capture-button,
+    .next-button {
+        padding: 8px;
+        font-size: 14px;
+    } */
+}
+
+@media (max-width: 480px) {
+    .video {
+        width: 95%;
+        height: 90%;
+        /* aspect-ratio: 16 / 9; */
+    }
+    
+    .result-box {
+        width: 100px;
+        height: 60px;
+        font-size: 12px;
+    }
+
+    /* .start-button,
+    .switch-button,
+    .capture-button,
+    .next-button {
+        padding: 6px;
+        font-size: 12px;
+    } */
+}
