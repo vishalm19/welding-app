@@ -220,7 +220,7 @@
           const resultBox = document.getElementById("resultBox");
 
           if (result.status != null && result.status !== "") {
-            resultBox.innerText = "Inference result: " + result.status;
+            resultBox.innerText = "Result: " + result.status;
 
             // Display the inference image returned from the server
             if (result.result) {
@@ -229,7 +229,7 @@
             }
           } else {
             resultBox.innerText = "Error: " + result.message;
-            resultBox.innerText = "Inference result: No detection";
+            resultBox.innerText = "Result: No detection";
           }
         } catch (error) {
           console.error("Error sending image to server:", error);

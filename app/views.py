@@ -13,7 +13,7 @@ session=None
 good=0
 bad=0
 percent=0
-print(session,good,bad)
+
 @csrf_exempt
 def process_image(request):
     global session,bad,good
