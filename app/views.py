@@ -8,7 +8,7 @@ import json
 import numpy as np
 import cv2
 from ultralytics import YOLO
-model = YOLO("app/last.pt",device="cpu")
+model = YOLO("app/last.pt")
 session=None
 good=0
 bad=0
